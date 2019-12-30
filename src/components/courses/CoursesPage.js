@@ -1,58 +1,61 @@
-import React from "react";
+import React, {Fragment} from "react";
 import {connect} from 'react-redux';
 import * as courseActions from '../../redux/actions/courseActions';
+import * as authorActions from '../../redux/actions/authorActions';
 import PropTypes from 'prop-types';
 import {bindActionCreators} from 'redux';
+import CourseList from "./CourseList";
 
 class CoursesPage extends React.Component {
+    componentDidMount = () => {
+        const {courses, authors, actions} = this.props;
 
-    state = {
-        course: {
-            title: ""
+        if (courses.length === 0) {
+            actions.loadCourses().catch(error => {
+                alert("Loading course failed" + error)
+            });
         }
-    };
-
-    handleChange = event => {
-        const course = {...this.state.course, title: event.target.value};
-        this.setState({course})
-    };
-
-    handleSubmit = event => {
-        event.preventDefault();
-        this.props.actions.createCourse(this.state.course);
+        if (authors.length === 0) {
+            actions.loadAuthors().catch(error => {
+                alert("Loading authors failed" + error)
+            });
+        }
     };
 
     render() {
         return (
-            <form onSubmit={this.handleSubmit}>
+            <Fragment>
                 <h2>Courses</h2>
-                <h3>Add Course</h3>
-                <input type="text" onChange={this.handleChange} value={this.state.course.title}/>
-                <input type="submit" value="Save"/>
-                {this.props.courses.map(course => (
-                    <div key={course.title}>{course.title}</div>
-                ))}
-            </form>
+                <CourseList courses={this.props.courses}/>
+            </Fragment>
         );
     }
 }
 
 CoursesPage.propTypes = {
+    authors: PropTypes.array.isRequired,
     courses: PropTypes.array.isRequired,
     actions: PropTypes.object.isRequired
 };
 
-const mapStateToProps = ({courses}) => {
+const mapStateToProps = ({courses, authors}) => {
     return {
-        courses
+        courses: authors.length === 0 ? [] : courses.map(course => {
+            return {
+                ...course,
+                authorName: authors.find(a => a.id === course.authorId).name
+            }
+        }),
+        authors
     }
 };
 
 const mapDispatchToProps = dispatch => {
     return {
-        actions: bindActionCreators(courseActions, dispatch)
-        // createCourse: course => dispatch(courseActions.createCourse(course))
-        // bindActionCreators wraps all courseActions for a call to dispatch
+        actions: {
+            loadCourses: bindActionCreators(courseActions.loadCourses, dispatch),
+            loadAuthors: bindActionCreators(authorActions.loadAuthors, dispatch)
+        }
     }
 };
 
